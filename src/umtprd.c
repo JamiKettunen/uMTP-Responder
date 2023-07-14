@@ -42,6 +42,8 @@
 
 #include "default_cfg.h"
 
+#include <systemd/sd-daemon.h>
+
 mtp_ctx * mtp_context;
 
 void* io_thread(void* arg)
@@ -85,6 +87,13 @@ static int main_thread(const char *conffile)
 		if(usb_ctx)
 		{
 			mtp_set_usb_handle(mtp_context, usb_ctx, mtp_context->usb_cfg.usb_max_packet_size);
+
+			// UBports-specific: use systemd mechanism to notify daemon init.
+			char statestr[48];
+			snprintf(statestr, sizeof(statestr), "READY=1\nSTATUS=Started in %s mode",
+			         (mtp_context->usb_cfg.usb_functionfs_mode) ? "FunctionFS" : "GadgetFS");
+			sd_notify(/* unset_environment */ 1, statestr);
+
 			if( mtp_context->usb_cfg.usb_functionfs_mode )
 			{
 				PRINT_DEBUG("uMTP Responder : FunctionFS Mode - entering handle_ffs_ep0");
